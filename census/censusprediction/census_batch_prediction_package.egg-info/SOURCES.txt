@@ -1,0 +1,12 @@
+setup.py
+census_batch_prediction_package.egg-info/PKG-INFO
+census_batch_prediction_package.egg-info/SOURCES.txt
+census_batch_prediction_package.egg-info/dependency_links.txt
+census_batch_prediction_package.egg-info/requires.txt
+census_batch_prediction_package.egg-info/top_level.txt
+trainer/__init__.py
+trainer/model.py
+trainer/task.py
+trainer/helper/__init__.py
+trainer/helper/bqhelper.py
+trainer/helper/gcshelper.py

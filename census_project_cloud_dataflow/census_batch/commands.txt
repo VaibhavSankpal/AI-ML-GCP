@@ -1,0 +1,8 @@
+# Create a template (which can be ran many times later)
+python -m main --runner DataflowRunner --project <PROJECT-NAME> --temp_location gs://<BUCKET-NAME>/tmp/ --save_main_session True --setup_file ./setup.py --template_location gs://<BUCKET-NAME>/<PATH-TO-TEMPLATE>/<AIRID>-<PROJECT-NAME>-template
+
+# Deploy the batch job for dataflow
+python -m main --runner DataflowRunner --project <PROJECT-NAME> --temp_location gs://<BUCKET-NAME>/tmp/ --save_main_session True --setup_file ./setup.py
+
+# Test the dataflow job locally
+python -m main --runner DirectRunner --project <PROJECT-NAME> --temp_location gs://<BUCKET-NAME>/tmp/ --save_main_session True --setup_file ./setup.py

@@ -1,0 +1,6 @@
+{
+  "instances": [
+    [28, "Local-gov", 336951, "Assoc-acdm", 12, "Married-civ-spouse", "Protective-serv", "Husband", "White", "Male", 0, 0, 40, "United-States"],
+    [44, "Private", 160323, "Some-college", 10, "Married-civ-spouse", "Machine-op-inspct", "Husband", "Black", "Male", 7688, 0, 40, "United-States"]
+  ]
+}
