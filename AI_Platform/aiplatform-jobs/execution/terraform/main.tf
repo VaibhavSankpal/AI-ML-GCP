@@ -1,6 +1,7 @@
-module "gcp_aiplatformjob1" {
-  source = "acnciotfregistry.accenture.com/accenture-cio/aiplatformjob/google"
-  version = "1.0.0"
+# -------------------------- AI Platform Jobs Execution ----------------------
 
-  project_id = "#{GCP_PROJECT_ID}#"
+module "gcp_aiplatformjob1" {
+  source      = "acnciotfregistry.accenture.com/accenture-cio/aiplatformjob/google"
+  version     = "#{TF_VERSION}#"
+  project_id  = var.gcp_project_id
 }

@@ -1,0 +1,75 @@
+!gsutil ls
+
+!${PWD}
+
+# Local training
+!gcloud ai-platform local train \
+    --module-name trainer.task \
+    --package-path ${PWD}/training/code/trainer \
+    -- \
+    --model-bucket sbx-65343-modelmgmt08-ds-ml \
+    --output-dir census/output
+
+# Local execution
+!gcloud ai-platform local train \
+    --module-name trainer.task \
+    --package-path ${PWD}/execution/code/trainer \
+    -- \
+    --model-bucket sbx-65343-modelmgmt08-ds-ml \
+    --output-dir census/output/model.joblib
+
+# Training:
+!gcloud ai-platform jobs submit training demo_training_$(date +"%Y%m%d_%H%M%S") \
+    --staging-bucket gs://sbx-65343-modelmgmt08-ds-staging \
+    --package-path ${PWD}/training/code/trainer \
+    --module-name trainer.task \
+    --region us-central1 \
+    --runtime-version=2.1 \
+    --python-version=3.7 \
+    --scale-tier BASIC \
+    -- \
+    --model-bucket sbx-65343-modelmgmt08-ds-ml \
+    --output-dir census/output
+
+# Batch Execution:
+!gcloud ai-platform jobs submit training demo_batchexecution_$(date +"%Y%m%d_%H%M%S") \
+    --staging-bucket gs://sbx-65343-modelmgmt08-ds-staging \
+    --package-path ${PWD}/execution/code/trainer \
+    --module-name trainer.task \
+    --region us-central1 \
+    --runtime-version=2.1 \
+    --python-version=3.7 \
+    --scale-tier BASIC \
+    -- \
+    --model-bucket sbx-65343-modelmgmt08-ds-ml \
+    --output-dir census/output/model.joblib
+
+# Online prediction
+# Create AI Model
+!gcloud ai-platform models create model1
+
+# Create version using framework
+!gcloud ai-platform versions create v1 \
+    --model model1 \
+    --origin gs://sbx-65343-modelmgmt08-ds-ml/census/output \
+    --runtime-version=2.1 \
+    --framework scikit-learn \
+    --python-version=3.7
+
+# Test data: 
+{
+"instances": [
+    [28, "Local-gov", 336951, "Assoc-acdm", 12, "Married-civ-spouse", "Protective-serv", "Husband", "White", "Male", 0, 0, 40, "United-States"],
+    [44, "Private", 160323, "Some-college", 10, "Married-civ-spouse", "Machine-op-inspct", "Husband", "Black", "Male", 7688, 0, 40, "United-States"]]
+}
+
+# Create version for Custom code prediction
+!gcloud beta ai-platform versions create iris_v1 \
+    --model model1 \
+    --runtime-version 2.1 \
+    --python-version 3.7 \
+    --origin gs://sbx-65343-modelmgmt08-ds-ml/custom_prediction_routine/model \
+    --package-uris gs://sbx-65343-modelmgmt08-ds-ml/custom_prediction_routine/my_custom_code-0.1.tar.gz \
+    --prediction-class predictor.MyPredictor
+
+

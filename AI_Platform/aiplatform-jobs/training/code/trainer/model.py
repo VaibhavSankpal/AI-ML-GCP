@@ -5,7 +5,7 @@ from google.cloud import storage
 from google.cloud import bigquery
 from trainer.helper import gcshelper, bqhelper
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.externals import joblib
+import joblib
 from sklearn.feature_selection import SelectKBest
 from sklearn.pipeline import FeatureUnion
 from sklearn.pipeline import Pipeline
@@ -43,8 +43,10 @@ def train_and_evaluate(args):
 #     QUERY = ('SELECT * FROM `sb-bigdata-4985-da852265.modelmanagement.composer_census_data`')
 #     query_job = client.query(QUERY)  # API request
 #     df = query_job.result().to_dataframe()  # Waits for query to finish
+## BQ static code anylyser task
+#    df_test = bqhelper.read_from_bqtable('SELECT * FROM `bigquery-public-data.ml_datasets.census_adult_income`')
 
-    df = bqhelper.read_from_bqtable('prd-65343-modelmgmt-d-607e8a85', 'SELECT age, workclass, functional_weight, education, education_num, marital_status, occupation, relationship, race, sex, capital_gain, capital_loss, hours_per_week, native_country, income_bracket FROM `prd-65343-datalake-bd-88394358.65343_modelmgmt_ds.census_adult_data`')
+    df = bqhelper.read_from_bqtable('SELECT age, workclass, functional_weight, education, education_num, marital_status, occupation, relationship, race, sex, capital_gain, capital_loss, hours_per_week, native_country, income_bracket FROM `bigquery-public-data.ml_datasets.census_adult_income`')
     logging.info("data loaded from bigquery!")
 
     # [END download-data] ---------------------------------------
@@ -178,11 +180,7 @@ def train_and_evaluate(args):
     joblib.dump(pipeline, model)
 
     # Upload the model to GCS
-    model_url = upload_to_bucket(BUCKET_NAME,'{}/{}'.format(OUTPUT_DIR,model), model)
-    logging.info("model uploaded to GCS bucket!")
+    # NOTE: For local training, you need not have to upload the model to GCS so comment this section
     
-def upload_to_bucket(bucket_name, blob_path, local_path):
-    bucket = storage.Client().bucket(bucket_name)
-    blob = bucket.blob(blob_path)
-    blob.upload_from_filename(local_path)
-    return blob.public_url
+    model_url = gcshelper.upload_to_bucket(model, BUCKET_NAME, '{}/{}'.format(OUTPUT_DIR,model))
+    logging.info("model uploaded to GCS bucket!")

@@ -4,28 +4,27 @@ import pandas as pd
 import sys
 import json
 import logging
-from sklearn.externals import joblib
+import joblib
 from google.cloud import bigquery
 from trainer.helper import gcshelper, bqhelper
 
-#predictiontable = 'modelmanagement.censuspredict_table'
-predictiontable = '65343_modelmgmt_ds.census_income_predictions'
+predictiontable = 'prd-65343-datalake-bd-88394358.modelmgmt_65343_ds.census_pred_results'
 
 # Specify default parameters.
-MODEL_BUCKET = 'prd-65343-modelmgmt-ds-ml'
-MODEL_PATH = 'census/output/'
+BUCKET_NAME = None
+OUTPUT_DIR = None
 LOCAL_PATH = '/tmp'
 
 def run():
     # Download the model from GCS bucket
-    gcshelper.download_from_bucket(MODEL_BUCKET, MODEL_PATH, LOCAL_PATH)
+    gcshelper.download_from_bucket(BUCKET_NAME, OUTPUT_DIR, LOCAL_PATH)
     
     # load model
     model = joblib.load(LOCAL_PATH + '/model.joblib')
     logging.info("Model loaded from bucket")
     
     # load the input data from bigquery
-    df = bqhelper.read_from_bqtable('prd-65343-datalake-bd-88394358', 'SELECT age, workclass, functional_weight, education, education_num, marital_status, occupation, relationship, race, sex, capital_gain, capital_loss, hours_per_week, native_country FROM `prd-65343-datalake-bd-88394358.65343_modelmgmt_ds.census_adult_income_test`')
+    df = bqhelper.read_from_bqtable('SELECT age, workclass, functional_weight, education, education_num, marital_status, occupation, relationship, race, sex, capital_gain, capital_loss, hours_per_week, native_country FROM `prd-65343-datalake-bd-88394358.modelmgmt_65343_ds.census_test_data`')
     logging.info("Batch data loaded from Bigquery to dataframe")
     
     # PREDICT your model
@@ -36,6 +35,7 @@ def run():
     df['prediction_result'] = preds
     
     # create a schema for the output BQ table
+    # Note: This is an optional argument. Use this only if you want to pass your own schema and add this variable as an argument to below function.
     varbqschema=[
         bigquery.SchemaField(name="age", field_type="INTEGER"),
         bigquery.SchemaField(name="workclass", field_type="STRING"),
@@ -54,5 +54,5 @@ def run():
         bigquery.SchemaField(name="prediction_result", field_type="BOOLEAN")
     ]
     #write the results and the input data to a new BQ table
-    bqhelper.write_to_bqtable('prd-65343-datalake-bd-88394358', predictiontable, varbqschema, df)
+    bqhelper.write_to_bqtable(df, predictiontable)
     logging.info("Prediction results stored into Bigquery successfully")

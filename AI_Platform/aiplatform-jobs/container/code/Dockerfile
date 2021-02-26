@@ -1,9 +1,4 @@
-FROM acncio.azurecr.io/ubuntu18.04cio:latest
-
-LABEL name="aqua_r_base"
-LABEL version="20200608.1"
-LABEL maintainer="JigarC <jigar.chhadwa@accenture.com>"
-LABEL description="R based container image for AI Platform Jobs based on ubuntu 18.04 base standard image"
+FROM acncio.azurecr.io/ubuntu20.04cio:latest
 
 # Update and install gnupg2
 RUN apt-get update && apt-get install -y gnupg2
@@ -24,6 +19,7 @@ RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-
 RUN apt-get update \
 		&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 			r-base \
+            r-base-dev \
 		&& rm -rf /var/lib/apt/lists/*
 
 # Remove Python 3.6.9 which comes as a part of common software bundle, due to vulnerability
@@ -34,9 +30,7 @@ RUN apt-get update \
 # Dependencies for Python
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        build-essential \
         zlib1g-dev \
-        libncurses5-dev \
         libgdbm-dev \
         libnss3-dev \
         libssl-dev \
@@ -49,14 +43,22 @@ RUN apt-get update \
         ca-certificates \
 		# Needed for Rcpp
 		make \
-		g++ \
-        libblas-dev \
-        liblapack-dev \
-        # Needed for randomForest
-        gfortran \
         python3-distutils \
+        # Needed for XML2, rjava & tidyverse
+        libxml2-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
+# Install Java
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        default-jre \
+        default-jdk \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Configure R with Java
+RUN R CMD javareconf
+
+# Set Working Directory
 WORKDIR /app
 
 #######################################
@@ -67,7 +69,7 @@ WORKDIR /app
 RUN wget -nv \
     https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz && \
     mkdir /app/tools && \
-    tar xvzf google-cloud-sdk.tar.gz -C /app/tools && \
+    tar xzf google-cloud-sdk.tar.gz -C /app/tools && \
     rm google-cloud-sdk.tar.gz && \
     /app/tools/google-cloud-sdk/install.sh --usage-reporting=false \
         --path-update=false --bash-completion=false \
@@ -90,37 +92,20 @@ RUN curl -s https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
 #######################################
 #####  gcloud aqua fixes        #######
 #######################################
-
-# Remove the vulnerability identified by Aqua
-RUN pip3 install httplib2 \
-    && pip3 list -v \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/python2/httplib2 \
-    && cp -R /usr/local/lib/python3.6/dist-packages/httplib2 /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/python2/httplib2 \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/python3/httplib2 \
-    && cp -R /usr/local/lib/python3.6/dist-packages/httplib2 /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/python3/httplib2 \
-    && gcloud --version
-
-RUN pip3 install rsa \
-    && pip3 list -v \    
-    && rm -rf /app/tools/google-cloud-sdk/lib/third_party/rsa  \
-    && cp -R /usr/local/lib/python3.6/dist-packages/rsa /app/tools/google-cloud-sdk/lib/third_party/rsa \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/rsa/rsa \
-    && cp -R /usr/local/lib/python3.6/dist-packages/rsa /app/tools/google-cloud-sdk/platform/gsutil/third_party/rsa/rsa \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/tests/tls/ca.key \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/tests/tls/client.key \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/tests/tls/client_encrypted.key \
-    && rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/tests/tls/server.key \
-    && gcloud --version
-
+RUN rm -rf /app/tools/google-cloud-sdk/platform/gsutil/third_party/httplib2/tests
 
 #######################################
 #####  copy files and scripts   #######
 #######################################
-
 COPY bootstrap_script.sh /app
-RUN Rscript -e "install.packages(c('googleCloudStorageR','bigrquery'), quiet=TRUE)"
 
-#RUN Rscript -e "install.packages(c('dplyr','doParallel','Boruta','mlbench','readr','caret'), quiet=FALSE)"
+# Install Required Packages
+# R
+RUN Rscript -e "install.packages(c('googleCloudStorageR','bigrquery','devtools','data.table'), quiet=TRUE, repos='https://cran.rstudio.com')"
+# RUN Rscript -e "install.packages(c('devtools','Hmisc','rJava'), quiet=TRUE)"
+
+# Install Packages for Python
+RUN python3 -m pip install google-cloud-bigquery pandas pyarrow
 
 WORKDIR /app
 USER appuser:appgroup

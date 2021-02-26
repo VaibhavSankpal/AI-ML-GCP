@@ -24,10 +24,15 @@ RUN apt-get update \
         python3-distutils \
 		python3-pip \
 		python3-setuptools \
+		python3-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install the package that is needed for the execution
 RUN python3 --version \
+	&& python3 -m pip --version
+
+RUN python3 -m pip install --upgrade pip \
+	&& python3 -m pip install setuptools --upgrade \
 	&& python3 -m pip --version
 
 # Copy Requirements.txt into working directory
@@ -37,6 +42,9 @@ COPY requirements.txt ${APPDIR}
 # Install Packages into Virtual Enviornment
 RUN python3 -m pip install -r ${APPDIR}/requirements.txt \
         && python3 -m pip install -U pip-licenses
+
+# Remove Vulnerabilties: For h2o
+RUN rm -r /usr/local/lib/python3.6/dist-packages/future/backports/test
 
 USER appuser:appgroup
 # ENTRYPOINT ["/microenforcer"]

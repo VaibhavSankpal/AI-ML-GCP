@@ -1,6 +1,4 @@
 echo 'Running script as start up...'
-$(basename $0) && exit
-
 # Parse arguments
 for i
     do
@@ -29,7 +27,7 @@ ls -l
 
 echo 'Downloading the files from the bucket...'
 # Download the R Package from bucket
-gsutil cp $R_PACKAGE_PATH .
+gsutil cp -R $R_PACKAGE_PATH .
 
 echo 'here are the list of files after downloading...'
 ls -l
@@ -37,5 +35,4 @@ ls -l
 # Execute the function
 Rscript $ENTRY_POINT
 
-echo 'R script is executed and here are the list of files...'
-ls -l
+echo 'R script is executed !!!'
